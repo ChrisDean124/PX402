@@ -1,0 +1,25 @@
+# - Try to find PYTHIA8
+# Defines:
+#  PYTHIA8_FOUND        - System has PYTHIA8
+#  PYTHIA8_INCLUDE_DIRS - The PYTHIA8 include directories
+#  PYTHIA8_LIBRARIES    - The libraries needed to use PYTHIA8
+
+find_program(PYTHIA8_CONFIG_EXECUTABLE NAMES pythia8-config)
+
+if(NOT PYTHIA8_CONFIG_EXECUTABLE)
+    # Check if it's in the current directory or parent directories as fallback
+    find_program(PYTHIA8_CONFIG_EXECUTABLE NAMES pythia8-config PATHS ${CMAKE_SOURCE_DIR} ${CMAKE_SOURCE_DIR}/.. NO_DEFAULT_PATH)
+endif()
+
+if(PYTHIA8_CONFIG_EXECUTABLE)
+    execute_process(COMMAND ${PYTHIA8_CONFIG_EXECUTABLE} --includedir OUTPUT_VARIABLE PYTHIA8_INCLUDE_DIR OUTPUT_STRIP_TRAILING_WHITESPACE)
+    execute_process(COMMAND ${PYTHIA8_CONFIG_EXECUTABLE} --libdir OUTPUT_VARIABLE PYTHIA8_LIBRARY_DIR OUTPUT_STRIP_TRAILING_WHITESPACE)
+    
+    set(PYTHIA8_INCLUDE_DIRS ${PYTHIA8_INCLUDE_DIR})
+    find_library(PYTHIA8_LIBRARY NAMES pythia8 HINTS ${PYTHIA8_LIBRARY_DIR})
+    set(PYTHIA8_LIBRARIES ${PYTHIA8_LIBRARY} ${CMAKE_DL_LIBS})
+endif()
+
+include(FindPackageHandleStandardArgs)
+find_package_handle_standard_args(Pythia8 DEFAULT_MSG PYTHIA8_LIBRARIES PYTHIA8_INCLUDE_DIRS)
+mark_as_advanced(PYTHIA8_INCLUDE_DIRS PYTHIA8_LIBRARIES)
