@@ -6,6 +6,7 @@ import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import os
+import h5py
 
 DATADIR="/storage/epp2/phshgg/Public/ew_analyses/run3_tuples/17/d13600GeV_block7_Down_Full_Stream.root"
 
@@ -29,9 +30,6 @@ Wp_mu_Pt = np.sqrt(Wp_mu_PX**2+Wp_mu_PY**2)
 Wm_counts, Wm_edges = np.histogram(Wm_mu_Pt/1000,bins=50,range=(15, 50))
 Wp_counts, Wp_edges = np.histogram(Wp_mu_Pt/1000,bins=50,range=(15, 50))
 
-def path(direct):
-        return(os.path.expanduser(f'~/transient/{direct}'))
-
 def asymmetry(A,B):
         f=(A-B)/(A+B)
         sigma_A=np.sqrt(A)
@@ -54,13 +52,11 @@ def asymmetry(A,B):
 
 A, sigma_A=asymmetry(Wp_counts,Wm_counts)
 
-np.savetxt(
-    path('Asymmetry_analysis.csv'),
-    np.column_stack([Wm_edges[:-1], Wp_counts, Wm_counts, A, sigma_A]),
-    fmt='%e',
-    delimiter=',',
-    header='Wm_edge,Wp_count,Wm_count,A,sigma_A',
-    comments='',
-)
+with h5py.File('transient/Asymmetry_analysis.h5', 'w') as f:
+    f.create_dataset('edges',     data=Wm_edges[:-1])
+    f.create_dataset('Wp_counts', data=Wp_counts)
+    f.create_dataset('Wm_counts', data=Wm_counts)
+    f.create_dataset('A',         data=A)
+    f.create_dataset('sigma_A',   data=sigma_A)
 
 print('Done')
