@@ -10,7 +10,7 @@ import os
 def path(direct):
         return(os.path.expanduser(f'~/transient/{direct}'))
 
-data = np.loadtxt(path('Asymmetry_analysis.txt'))
+data = np.loadtxt(path('Asymmetry_analysis.csv'), delimiter=',', skiprows=1)
 
 edges, Wp_counts, Wm_counts, A, sigma_A = data.T
 

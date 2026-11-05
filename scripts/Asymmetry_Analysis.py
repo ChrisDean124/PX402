@@ -54,6 +54,13 @@ def asymmetry(A,B):
 
 A, sigma_A=asymmetry(Wp_counts,Wm_counts)
 
-np.savetxt(path('Asymmetry_analysis.txt'),np.column_stack([Wm_edges[:-1], Wp_counts,Wm_counts,A,sigma_A]),fmt='%e')
+np.savetxt(
+    path('Asymmetry_analysis.csv'),
+    np.column_stack([Wm_edges[:-1], Wp_counts, Wm_counts, A, sigma_A]),
+    fmt='%e',
+    delimiter=',',
+    header='Wm_edge,Wp_count,Wm_count,A,sigma_A',
+    comments='',
+)
 
 print('Done')
