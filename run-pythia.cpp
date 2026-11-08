@@ -66,7 +66,7 @@ using namespace Pythia8;
     auto events = rdf.Define("pT_GeV", [&pT](ULong64_t i) {return pT[i]; }, {"rdfentry_"} )
 	    	     .Define("charge", [&charge](ULong64_t i) {return charge[i]; }, {"rdfentry_"} ) ;
 
-    events.Snapshot("Events", "transient/pythia.root", {"pT_GeV", "charge"});
+    events.Snapshot("Events", "transient/event_data.root", {"pT_GeV", "charge"});
     
 
     return 0;
