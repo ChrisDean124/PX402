@@ -10,7 +10,7 @@ using namespace Pythia8;
 
   int main() {
 
-    int nEvents = 1000;
+    int nEvents = 5000;
 
     std::vector<double> pT(nEvents) ;
     std::vector<double> charge(nEvents) ;
