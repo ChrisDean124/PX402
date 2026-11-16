@@ -8,9 +8,11 @@
 using namespace Pythia8;
 
 
-  int main() {
+  int main(int argc, char *argv[]) {
 
-    int nEvents = 5000;
+
+    // 0. Generate events passed to argument e.g." ./run ./run-pythia 1000 "
+    int nEvents = std::stoi(argv[1]);
 
     std::vector<double> pT(nEvents) ;
     std::vector<double> charge(nEvents) ;
@@ -38,7 +40,7 @@ using namespace Pythia8;
 
     // 6. Generate a single event
     
-    for (int j = 0; j < nEvents ; j++) {
+    for (int eventNum = 0; eventNum < nEvents ; eventNum++) {
 	    if (!pythia.next()) {
 		std::cerr << "Event generation failed!" << std::endl;
 		return 1;
@@ -56,8 +58,8 @@ using namespace Pythia8;
 		}
 	    }
 	    
-	    pT[j] = pTmax;
-	    charge[j] = target_charge;
+	    pT[eventNum] = pTmax;
+	    charge[eventNum] = target_charge;
 
     }
 
