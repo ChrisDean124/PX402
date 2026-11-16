@@ -9,12 +9,12 @@ import os
 import h5py
 
 DATADIR={
-        'measurement':"/storage/epp2/phshgg/Public/ew_analyses/run3_tuples/17/d13600GeV_block7_Down_Full_Stream.root",
-        'simulation':"transient/event_data.root"
+        'experimental':"/storage/epp2/phshgg/Public/ew_analyses/run3_tuples/17/d13600GeV_block7_Down_Full_Stream.root",
+        'prediction':"transient/event_data.root"
         }
 
 for g in DATADIR:
-	if g=='measurement':
+	if g=='experimental':
 		with uproot.open(f"{DATADIR[g]}:WmNoMuID/DecayTree") as t:
 			Wm_momenta = t.arrays(["mu_PX","mu_PY","mu_PZ"],library="np")
 
@@ -32,7 +32,7 @@ for g in DATADIR:
 		Wm_mu_Pt = np.sqrt(Wm_mu_PX**2+Wm_mu_PY**2)/1000
 		Wp_mu_Pt = np.sqrt(Wp_mu_PX**2+Wp_mu_PY**2)/1000
 
-	if g=='simulation':
+	if g=='prediction':
 		with uproot.open(f'{DATADIR[g]}:Events;1') as t:
 			df = t.arrays(["pT_GeV", "charge"],library="np")
 
