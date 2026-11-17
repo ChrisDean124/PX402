@@ -8,55 +8,74 @@ import matplotlib.pyplot as plt
 import os
 import h5py
 
-DATADIR="/storage/epp2/phshgg/Public/ew_analyses/run3_tuples/17/d13600GeV_block7_Down_Full_Stream.root"
+DATADIR={
+        'measurement':"/storage/epp2/phshgg/Public/ew_analyses/run3_tuples/17/d13600GeV_block7_Down_Full_Stream.root",
+        'simulation':"transient/event_data.root"
+        }
 
-with uproot.open(f"{DATADIR}:WmNoMuID/DecayTree") as t:
-        Wm_momenta = t.arrays(["mu_PX","mu_PY","mu_PZ"],library="np")
+for g in DATADIR:
+	if g=='measurement':
+		with uproot.open(f"{DATADIR[g]}:WmNoMuID/DecayTree") as t:
+			Wm_momenta = t.arrays(["mu_PX","mu_PY","mu_PZ"],library="np")
 
-Wm_mu_PX = Wm_momenta["mu_PX"]
-Wm_mu_PY = Wm_momenta["mu_PY"]
-Wm_mu_PZ = Wm_momenta["mu_PZ"]
+		Wm_mu_PX = Wm_momenta["mu_PX"]
+		Wm_mu_PY = Wm_momenta["mu_PY"]
+		Wm_mu_PZ = Wm_momenta["mu_PZ"]
 
-with uproot.open(f"{DATADIR}:WpNoMuID/DecayTree") as t:
-        Wp_momenta = t.arrays(["mu_PX","mu_PY","mu_PZ"],library="np")
+		with uproot.open(f"{DATADIR[g]}:WpNoMuID/DecayTree") as t:
+		        Wp_momenta = t.arrays(["mu_PX","mu_PY","mu_PZ"],library="np")
 
-Wp_mu_PX = Wp_momenta["mu_PX"]
-Wp_mu_PY = Wp_momenta["mu_PY"]
-Wp_mu_PZ = Wp_momenta["mu_PZ"]
+		Wp_mu_PX = Wp_momenta["mu_PX"]
+		Wp_mu_PY = Wp_momenta["mu_PY"]
+		Wp_mu_PZ = Wp_momenta["mu_PZ"]
 
-Wm_mu_Pt = np.sqrt(Wm_mu_PX**2+Wm_mu_PY**2)
-Wp_mu_Pt = np.sqrt(Wp_mu_PX**2+Wp_mu_PY**2)
+		Wm_mu_Pt = np.sqrt(Wm_mu_PX**2+Wm_mu_PY**2)/1000
+		Wp_mu_Pt = np.sqrt(Wp_mu_PX**2+Wp_mu_PY**2)/1000
 
-Wm_counts, Wm_edges = np.histogram(Wm_mu_Pt/1000,bins=50,range=(15, 50))
-Wp_counts, Wp_edges = np.histogram(Wp_mu_Pt/1000,bins=50,range=(15, 50))
+	if g=='simulation':
+		with uproot.open(f'{DATADIR[g]}:Events;1') as t:
+			df = t.arrays(["pT_GeV", "charge"],library="np")
 
-def asymmetry(A,B):
-        f=(A-B)/(A+B)
-        sigma_A=np.sqrt(A)
-        sigma_B=np.sqrt(B)
+		pT_GeV=df["pT_GeV"]
+		charge=df["charge"]
 
-        df_dA=2*B/((A+B)**2)
-        df_dB=-2*A/((A+B)**2)
+		Wm=[]
+		Wp=[]
+		for i in range(len(charge)):
+			if charge[i]==-1:
+				Wm.append(pT_GeV[i])
+			if charge[i]==1:
+				Wp.append(pT_GeV[i])
 
-        var_f=[]
-        for i in range(len(A)):
+		Wm_mu_Pt = np.array(Wm)
+		Wp_mu_Pt = np.array(Wp)
 
-                C=np.array([[A[i],0],
-                [0,B[i]]])
-                J=np.array([df_dA[i],df_dB[i]])
-                var_f.append(J@C@J.T)
+	Wm_counts, Wm_edges = np.histogram(Wm_mu_Pt,bins=50,range=(15, 50))
+	Wp_counts, Wp_edges = np.histogram(Wp_mu_Pt,bins=50,range=(15, 50))
 
-        sigma_f=np.sqrt(np.array(var_f))
+	def asymmetry(A,B):
+		f=np.zeros(len(A))
+		sigma_f=np.zeros(len(A))
+		for i in range(len(A)):
 
-        return f, sigma_f
+			if ((A[i]+B[i]) == 0) or (4*A[i]*B[i]/((A[i]+B[i])**3)<0):
+				f[i]=np.nan
+				sigma_f[i]=np.nan
 
-A, sigma_A=asymmetry(Wp_counts,Wm_counts)
+			else:
 
-with h5py.File('transient/Asymmetry_analysis.h5', 'w') as f:
-    f.create_dataset('edges',     data=Wm_edges[:-1])
-    f.create_dataset('Wp_counts', data=Wp_counts)
-    f.create_dataset('Wm_counts', data=Wm_counts)
-    f.create_dataset('A',         data=A)
-    f.create_dataset('sigma_A',   data=sigma_A)
+				f[i]=(A[i]-B[i])/(A[i]+B[i])
+				sigma_f[i]=np.sqrt(4*A[i]*B[i]/((A[i]+B[i])**3))
+
+		return f, sigma_f
+
+	A, sigma_A=asymmetry(Wp_counts,Wm_counts)
+
+	with h5py.File(f'transient/Asymmetry_{g}.h5', 'w') as f:
+		f.create_dataset('edges',     data=Wm_edges[:-1])
+		f.create_dataset('Wp_counts', data=Wp_counts)
+		f.create_dataset('Wm_counts', data=Wm_counts)
+		f.create_dataset('A',         data=A)
+		f.create_dataset('sigma_A',   data=sigma_A)
 
 print('Done')
