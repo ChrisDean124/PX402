@@ -5,7 +5,8 @@ import numpy as np
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
-import os
+import pandas as pd
+import time
 import h5py
 
 DATADIR={
@@ -13,59 +14,59 @@ DATADIR={
         'prediction':"transient/event_data.root"
         }
 
+prmin=2.0
+prmax=4.5
+
 for g in DATADIR:
 	if g=='experimental':
 		with uproot.open(f"{DATADIR[g]}:WmNoMuID/DecayTree") as t:
 			Wm_momenta = t.arrays(["mu_PX","mu_PY","mu_PZ"],library="np")
-
-		Wm_mu_PX = Wm_momenta["mu_PX"]
-		Wm_mu_PY = Wm_momenta["mu_PY"]
-		Wm_mu_PZ = Wm_momenta["mu_PZ"]
+			#print(t.keys())
+		Wm_mu_PX = Wm_momenta["mu_PX"]/1000
+		Wm_mu_PY = Wm_momenta["mu_PY"]/1000
+		Wm_mu_PZ = Wm_momenta["mu_PZ"]/1000
 
 		with uproot.open(f"{DATADIR[g]}:WpNoMuID/DecayTree") as t:
 		        Wp_momenta = t.arrays(["mu_PX","mu_PY","mu_PZ"],library="np")
 
-		Wp_mu_PX = Wp_momenta["mu_PX"]
-		Wp_mu_PY = Wp_momenta["mu_PY"]
-		Wp_mu_PZ = Wp_momenta["mu_PZ"]
+		Wp_mu_PX = Wp_momenta["mu_PX"]/1000
+		Wp_mu_PY = Wp_momenta["mu_PY"]/1000
+		Wp_mu_PZ = Wp_momenta["mu_PZ"]/1000
 
-		Wm_mu_Pt = np.sqrt(Wm_mu_PX**2+Wm_mu_PY**2)/1000
-		Wp_mu_Pt = np.sqrt(Wp_mu_PX**2+Wp_mu_PY**2)/1000
+		Wm_mu_P = np.sqrt(Wm_mu_PX**2+Wm_mu_PY**2+Wm_mu_PZ**2)
+		Wp_mu_P = np.sqrt(Wp_mu_PX**2+Wp_mu_PY**2+Wp_mu_PZ**2)
+
+		Wm_n = np.arctanh(Wm_mu_PZ/Wm_mu_P)
+		Wp_n = np.arctanh(Wp_mu_PZ/Wp_mu_P)
+
+		Wm_mask=(prmin<=Wm_n) & (Wm_n<=prmax)
+		Wp_mask=(prmin<=Wp_n) & (Wp_n<=prmax)
+
+		Wm_mu_Pt = np.sqrt(Wm_mu_PX[Wm_mask]**2+Wm_mu_PY[Wm_mask]**2)
+		Wp_mu_Pt = np.sqrt(Wp_mu_PX[Wp_mask]**2+Wp_mu_PY[Wp_mask]**2)
 
 	if g=='prediction':
 		with uproot.open(f'{DATADIR[g]}:Events;1') as t:
-			df = t.arrays(["pT_GeV", "charge"],library="np")
+			df = t.arrays(["pT_GeV", "charge"],library="pd")
 
-		pT_GeV=df["pT_GeV"]
-		charge=df["charge"]
-
-		Wm=[]
-		Wp=[]
-		for i in range(len(charge)):
-			if charge[i]==-1:
-				Wm.append(pT_GeV[i])
-			if charge[i]==1:
-				Wp.append(pT_GeV[i])
-
-		Wm_mu_Pt = np.array(Wm)
-		Wp_mu_Pt = np.array(Wp)
+		Wm_mu_Pt = df.loc[df["charge"] == -1, "pT_GeV"].to_numpy()
+		Wp_mu_Pt = df.loc[df["charge"] == +1, "pT_GeV"].to_numpy()
 
 	Wm_counts, Wm_edges = np.histogram(Wm_mu_Pt,bins=50,range=(15, 50))
 	Wp_counts, Wp_edges = np.histogram(Wp_mu_Pt,bins=50,range=(15, 50))
 
 	def asymmetry(A,B):
-		f=np.zeros(len(A))
-		sigma_f=np.zeros(len(A))
-		for i in range(len(A)):
 
-			if ((A[i]+B[i]) == 0) or (4*A[i]*B[i]/((A[i]+B[i])**3)<0):
-				f[i]=np.nan
-				sigma_f[i]=np.nan
+		denom=A+B
+		with np.errstate(divide="ignore", invalid="ignore"):
+			var_f=(4*A*B)/(denom**3)
+			mask=(denom!=0) & (var_f>=0)
 
-			else:
+			f=np.full_like(A, np.nan, dtype=float)
+			sigma_f=np.full_like(A, np.nan, dtype=float)
 
-				f[i]=(A[i]-B[i])/(A[i]+B[i])
-				sigma_f[i]=np.sqrt(4*A[i]*B[i]/((A[i]+B[i])**3))
+			f[mask]=(A[mask]-B[mask])/denom[mask]
+			sigma_f[mask]=np.sqrt(var_f[mask])
 
 		return f, sigma_f
 
