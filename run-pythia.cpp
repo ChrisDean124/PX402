@@ -4,16 +4,20 @@
 #include <fstream>
 #include <cmath>
 #include <ROOT/RDataFrame.hxx>
+#include <cstdlib>
 
 using namespace Pythia8;
 
 
-  int main() {
+  int main(int argc, char *argv[]) {
 
-    int nEvents = 5000;
+
+    // 0. Generate events passed to argument e.g." ./run ./run-pythia 1000 "
+    int nEvents = std::stoi(argv[1]);
 
     std::vector<double> pT(nEvents) ;
     std::vector<double> charge(nEvents) ;
+    std::vector<double> eta(nEvents);
 
 
     // 1. Instantiate the Pythia generator object
@@ -38,7 +42,7 @@ using namespace Pythia8;
 
     // 6. Generate a single event
     
-    for (int j = 0; j < nEvents ; j++) {
+    for (int eventNum = 0; eventNum < nEvents ; eventNum++) {
 	    if (!pythia.next()) {
 		std::cerr << "Event generation failed!" << std::endl;
 		return 1;
@@ -47,26 +51,50 @@ using namespace Pythia8;
 	    // 7. Read out the generated data (Example: loop through final state particles)
 	   double pTmax = 0; 
 	   double target_charge = 0; 
+       double target_eta = 0;
 
 	    for (int i = 0; i < pythia.event.size(); ++i) {
 		// Only look at stable, final-state particles
-		if (pythia.event[i].isFinal() && pythia.event[i].pT() > pTmax) {
+
+        if (!pythia.event[i].isFinal()) {
+            continue;
+        }
+
+	// check absolute value of eta for improved sampling efficiency 
+	
+        double etaValue = abs( pythia.event[i].eta() );
+
+        if (etaValue < 1.5 || etaValue > 5.0) {
+            continue;
+        }
+
+        if (pythia.event[i].charge() == 0) {
+            continue;
+        }
+
+		if (pythia.event[i].pT() > pTmax) {
+
+
+
 			pTmax = pythia.event[i].pT();
 			target_charge = pythia.event[i].charge();	
+            target_eta = pythia.event[i].eta();
 		}
 	    }
 	    
-	    pT[j] = pTmax;
-	    charge[j] = target_charge;
+	    pT[eventNum] = pTmax;
+	    charge[eventNum] = target_charge;
+        eta[eventNum] = target_eta;
 
     }
 
     ROOT::RDataFrame rdf(nEvents);
     
     auto events = rdf.Define("pT_GeV", [&pT](ULong64_t i) {return pT[i]; }, {"rdfentry_"} )
-	    	     .Define("charge", [&charge](ULong64_t i) {return charge[i]; }, {"rdfentry_"} ) ;
+	    	     .Define("charge", [&charge](ULong64_t i) {return charge[i]; }, {"rdfentry_"} ) 
+                 .Define("eta", [&eta](ULong64_t i) { return eta[i]; }, {"rdfentry_"});
 
-    events.Snapshot("Events", "transient/event_data.root", {"pT_GeV", "charge"});
+    events.Snapshot("Events", "transient/event_data.root", {"pT_GeV", "charge", "eta"});
     
 
     return 0;
