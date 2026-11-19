@@ -16,6 +16,7 @@ using namespace Pythia8;
 
     std::vector<double> pT(nEvents) ;
     std::vector<double> charge(nEvents) ;
+    std::vector<double> eta(nEvents);
 
 
     // 1. Instantiate the Pythia generator object
@@ -49,26 +50,48 @@ using namespace Pythia8;
 	    // 7. Read out the generated data (Example: loop through final state particles)
 	   double pTmax = 0; 
 	   double target_charge = 0; 
+       double target_eta = 0;
 
 	    for (int i = 0; i < pythia.event.size(); ++i) {
 		// Only look at stable, final-state particles
-		if (pythia.event[i].isFinal() && pythia.event[i].pT() > pTmax) {
+
+        if (!pythia.event[i].isFinal()) {
+            continue;
+        }
+
+        double etaValue = pythia.event[i].eta();
+
+        if (etaValue < 1.5 || etaValue > 5.0) {
+            continue;
+        }
+
+        if (!pythia.event[i].charge() == 0) {
+            continue;
+        }
+
+		if (pythia.event[i].pT() > pTmax) {
+
+
+
 			pTmax = pythia.event[i].pT();
 			target_charge = pythia.event[i].charge();	
+            target_eta = pythia.event[i].eta();
 		}
 	    }
 	    
 	    pT[eventNum] = pTmax;
 	    charge[eventNum] = target_charge;
+        eta[eventNum] = target_eta;
 
     }
 
     ROOT::RDataFrame rdf(nEvents);
     
     auto events = rdf.Define("pT_GeV", [&pT](ULong64_t i) {return pT[i]; }, {"rdfentry_"} )
-	    	     .Define("charge", [&charge](ULong64_t i) {return charge[i]; }, {"rdfentry_"} ) ;
+	    	     .Define("charge", [&charge](ULong64_t i) {return charge[i]; }, {"rdfentry_"} ) 
+                 .Define("eta", [&eta](ULong64_t i) { return eta[i]; }, {"rdfentry_"});
 
-    events.Snapshot("Events", "transient/event_data.root", {"pT_GeV", "charge"});
+    events.Snapshot("Events", "transient/event_data.root", {"pT_GeV", "charge", "eta"});
     
 
     return 0;
