@@ -65,7 +65,7 @@ using namespace Pythia8;
             continue;
         }
 
-        if (!pythia.event[i].charge() == 0) {
+        if (pythia.event[i].charge() == 0) {
             continue;
         }
 
