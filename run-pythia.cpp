@@ -4,6 +4,7 @@
 #include <fstream>
 #include <cmath>
 #include <ROOT/RDataFrame.hxx>
+#include <cstdlib>
 
 using namespace Pythia8;
 
@@ -59,7 +60,9 @@ using namespace Pythia8;
             continue;
         }
 
-        double etaValue = pythia.event[i].eta();
+	// check absolute value of eta for improved sampling efficiency 
+	
+        double etaValue = abs( pythia.event[i].eta() );
 
         if (etaValue < 1.5 || etaValue > 5.0) {
             continue;
