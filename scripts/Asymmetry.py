@@ -7,15 +7,16 @@ matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import pandas as pd
 import time
+import os
 import h5py
 
 DATADIR={
         'experimental':"/storage/epp2/phshgg/Public/ew_analyses/run3_tuples/17/d13600GeV_block7_Down_Full_Stream.root",
-        'prediction':"transient/event_data.root"
+        'prediction':"/storage/physics/phupzd/project/data/output_data.root"
         }
 
-prmin=2.0
-prmax=4.5
+etamin=2.0
+etamax=4.5
 
 for g in DATADIR:
 	if g=='experimental':
@@ -39,21 +40,22 @@ for g in DATADIR:
 		Wm_n = np.arctanh(Wm_mu_PZ/Wm_mu_P)
 		Wp_n = np.arctanh(Wp_mu_PZ/Wp_mu_P)
 
-		Wm_mask=(prmin<=Wm_n) & (Wm_n<=prmax)
-		Wp_mask=(prmin<=Wp_n) & (Wp_n<=prmax)
+		Wm_mask=(etamin<=Wm_n) & (Wm_n<=etamax)
+		Wp_mask=(etamin<=Wp_n) & (Wp_n<=etamax)
 
 		Wm_mu_Pt = np.sqrt(Wm_mu_PX[Wm_mask]**2+Wm_mu_PY[Wm_mask]**2)
 		Wp_mu_Pt = np.sqrt(Wp_mu_PX[Wp_mask]**2+Wp_mu_PY[Wp_mask]**2)
 
 	if g=='prediction':
 		with uproot.open(f'{DATADIR[g]}:Events;1') as t:
-			df = t.arrays(["pT_GeV", "charge"],library="pd")
+			df = t.arrays(["pT_GeV", "charge","eta"],library="pd")
+			#print(t.keys())
+			#print(df["eta"])
+		Wm_mu_Pt = df.loc[(df["charge"] == -1) & (etamin<=df["eta"]) & (etamax>=df["eta"]), "pT_GeV"].to_numpy()
+		Wp_mu_Pt = df.loc[(df["charge"] == +1) & (etamin<=df["eta"]) & (etamax>=df["eta"]), "pT_GeV"].to_numpy()
 
-		Wm_mu_Pt = df.loc[df["charge"] == -1, "pT_GeV"].to_numpy()
-		Wp_mu_Pt = df.loc[df["charge"] == +1, "pT_GeV"].to_numpy()
-
-	Wm_counts, Wm_edges = np.histogram(Wm_mu_Pt,bins=50,range=(15, 50))
-	Wp_counts, Wp_edges = np.histogram(Wp_mu_Pt,bins=50,range=(15, 50))
+	Wm_counts, Wm_edges = np.histogram(Wm_mu_Pt,bins=20,range=(15, 100))
+	Wp_counts, Wp_edges = np.histogram(Wp_mu_Pt,bins=20,range=(15, 100))
 
 	def asymmetry(A,B):
 
